@@ -28,6 +28,12 @@ module Beaglebone
     # P9_14 *OR* P9_16 (EHRPWM1A, EHRPWM1B),
     # P9_21 *OR* P9_22 (EHRPWM0B, EHRPWM0A).
     # there are also ecap pwms on pins P9_28 and P9_42
+    #
+    # New kernel 4.x way:
+    #
+    # P9_21 *OR* P9_22 (EHRPWM0B, EHRPWM0A) -> BB-PWM0
+    # P9_14 *OR* P9_16 (EHRPWM1A, EHRPWM1B) -> BB-PWM1
+    # P8_13 *OR* P8_19 (EHRPWM2B, EHRPWM2A) -> BB-PWM2
 
     P8_13: { gpio: 23, gpiofunc: 'gpio0_23', muxoffset: '0x024', pwm: 'pwm_2b', pwm_id: 2, pwm_mux: 4 },
 
@@ -127,7 +133,8 @@ module Beaglebone
     GPIO: { global: nil, pin: 'GPIO_' },
     UART: { global: nil, pin: 'BB-UART' },
     ADC: { global: 'BB-ADC', pin: nil },
-    PWM: { global: 'am33xx_pwm', pin: 'bone_pwm_' }
+    # OLD: :PWM  => { :global => 'am33xx_pwm', :pin => 'bone_pwm_' },
+    PWM: { global: 'am33xx_pwm', pin: 'BB-PWM' }
   }.freeze
 
   # UART device hash

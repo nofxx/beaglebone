@@ -5,9 +5,11 @@ module Beaglebone #:nodoc:
   # procedural methods for PWM control
   # == Summary
   # #start is called to enable a PWM pin
+  # BBB pwm https://mcututorials.wordpress.com/2017/01/24/beaglebone-black-pwm-on-ubuntu-16-04-using-device-tree/amp/
   module PWM
     # Polarity hash
-    POLARITIES = { NORMAL: 0, INVERTED: 1 }.freeze
+    # OLD POLARITIES = { :NORMAL => 0, :INVERTED => 1 }
+    POLARITIES = { NORMAL: 'normal', INVERTED: 'inverted' }.freeze
 
     class << self
       # Initialize a PWM pin
@@ -33,14 +35,22 @@ module Beaglebone #:nodoc:
 
         # load device tree for pin if not already loaded
         unless Beaglebone.get_pin_status(pin, :type) == :pwm
-          Beaglebone.device_tree_load("#{TREES[:PWM][:pin]}#{pin}", 0.5)
+          mod = case pin
+                when /P9_21|P9_22/ then '0'
+                when /P9_14|P9_16/ then '1'
+                when /P9_13|P9_19/ then '2'
+                end
+          # OLD Beaglebone::device_tree_load("#{TREES[:PWM][:pin]}#{pin}", 0.5)
+          Beaglebone.device_tree_load("#{TREES[:PWM][:pin]}#{mod}", 0.5)
           Beaglebone.set_pin_status(pin, :type, :pwm)
         end
 
-        duty_fd = File.open("#{pwm_directory(pin)}/duty", 'r+')
+        # OLD duty_fd = File.open("#{pwm_directory(pin)}/duty", 'r+')
+        duty_fd = File.open("#{pwm_directory(pin)}/duty_cycle", 'r+')
         period_fd = File.open("#{pwm_directory(pin)}/period", 'r+')
         polarity_fd = File.open("#{pwm_directory(pin)}/polarity", 'r+')
-        run_fd = File.open("#{pwm_directory(pin)}/run", 'r+')
+        # OLD run_fd = File.open("#{pwm_directory(pin)}/run", 'r+')
+        run_fd = File.open("#{pwm_directory(pin)}/enable", 'r+')
 
         Beaglebone.set_pin_status(pin, :fd_duty, duty_fd)
         Beaglebone.set_pin_status(pin, :fd_period, period_fd)
@@ -331,7 +341,8 @@ module Beaglebone #:nodoc:
         raise StandardError, "Pin is not PWM enabled: #{pin}" unless fd
 
         fd.rewind
-        value = fd.read.strip.to_i
+        # OLD value = fd.read.strip #.to_i
+        value = fd.read.strip # .to_i
 
         Beaglebone.set_pin_status(pin, :polarity, value)
       end
@@ -374,7 +385,13 @@ module Beaglebone #:nodoc:
       # return sysfs directory for pwm control
       def pwm_directory(pin)
         raise StandardError, 'Invalid Pin' unless valid?(pin)
-        Dir.glob("/sys/devices/ocp.*/pwm_test_#{pin}.*").first
+        # OLD Dir.glob("/sys/devices/ocp.*/pwm_test_#{pin}.*").first
+        mod = case pin
+              when /P9_21|P9_22/ then '2'
+              when /P9_14|P9_16/ then '4'
+              when /P9_13|P9_19/ then '6'
+              end
+        Dir.glob("/sys/class/pwm/pwmchip#{mod}/pwm0").first
       end
 
       # ensure polarity is valid

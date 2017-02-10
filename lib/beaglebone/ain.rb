@@ -33,8 +33,8 @@ module Beaglebone #:nodoc:
           # open the AIN analog input file
           pininfo = PINS[pin]
 
-          ain_file = Dir.glob("/sys/devices/ocp.*/helper.*/AIN#{pininfo[:analog]}").first
-          # ain_file = Dir.glob("/sys/bus/iio/devices/iio:device0/in_voltage#{pininfo[:analog]}_raw").first
+          # OLD ain_file = Dir.glob("/sys/devices/ocp.*/helper.*/AIN#{pininfo[:analog]}").first
+          ain_file = Dir.glob("/sys/bus/iio/devices/iio:device0/in_voltage#{pininfo[:analog]}_raw").first
           ain_fd = File.open(ain_file, 'r')
 
           Beaglebone.set_pin_status(pin, :fd_ain, ain_fd)
