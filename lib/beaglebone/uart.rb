@@ -7,7 +7,7 @@ module Beaglebone #:nodoc:
   # #setup is called to initialize a UART device
   module UART
     # Valid UART speeds
-    SPEEDS = [ 110, 300, 600, 1200, 2400, 4800, 9600, 14400, 19200, 28800, 38400, 56000, 57600, 115200 ]
+    SPEEDS = [110, 300, 600, 1200, 2400, 4800, 9600, 14_400, 19_200, 28_800, 38_400, 56_000, 57_600, 115_200].freeze
 
     @uartstatus = {}
     @uartmutex = Mutex.new
@@ -16,7 +16,7 @@ module Beaglebone #:nodoc:
       attr_accessor :uartstatus, :uartmutex
 
       # dts template for UART3 device
-      UARTTEMPLATE = []
+      UARTTEMPLATE = [].freeze
       UARTTEMPLATE[3] = '
 /dts-v1/;
 /plugin/;
@@ -40,7 +40,7 @@ module Beaglebone #:nodoc:
     __overlay__ {
       bb_uart3_pins: pinmux_bb_uart3_pins {
         pinctrl-single,pins = <
-          0x164 0x01 
+          0x164 0x01
         >;
       };
     };
@@ -64,34 +64,34 @@ module Beaglebone #:nodoc:
       #
       # @example
       #   UART.setup(:UART1, 9600)
-      def setup(uart, speed=9600)
+      def setup(uart, speed = 9600)
         check_uart_valid(uart)
         check_speed_valid(speed)
 
-        #make sure uart not already enabled
+        # make sure uart not already enabled
         return if get_uart_status(uart)
 
         uartinfo = UARTS[uart]
 
-        #ensure we have a dtb to load
+        # ensure we have a dtb to load
         create_device_tree(uart)
 
-        #ensure dtb is loaded
-        Beaglebone::device_tree_load("#{TREES[:UART][:pin]}#{uartinfo[:id]}")
+        # ensure dtb is loaded
+        Beaglebone.device_tree_load("#{TREES[:UART][:pin]}#{uartinfo[:id]}")
 
-        #open the uart device
+        # open the uart device
         uart_fd = File.open(uartinfo[:dev], 'r+')
 
         if uartinfo[:tx]
-          Beaglebone::set_pin_status(uartinfo[:tx], :uart, uartinfo[:id])
-          Beaglebone::set_pin_status(uartinfo[:tx], :type, :uart)
-          Beaglebone::set_pin_status(uartinfo[:tx], :fd_uart, uart_fd)
+          Beaglebone.set_pin_status(uartinfo[:tx], :uart, uartinfo[:id])
+          Beaglebone.set_pin_status(uartinfo[:tx], :type, :uart)
+          Beaglebone.set_pin_status(uartinfo[:tx], :fd_uart, uart_fd)
         end
 
         if uartinfo[:rx]
-          Beaglebone::set_pin_status(uartinfo[:rx], :uart, uartinfo[:id])
-          Beaglebone::set_pin_status(uartinfo[:tx], :type, :uart)
-          Beaglebone::set_pin_status(uartinfo[:rx], :fd_uart, uart_fd)
+          Beaglebone.set_pin_status(uartinfo[:rx], :uart, uartinfo[:id])
+          Beaglebone.set_pin_status(uartinfo[:tx], :type, :uart)
+          Beaglebone.set_pin_status(uartinfo[:rx], :fd_uart, uart_fd)
         end
 
         system("stty -F #{uartinfo[:dev]} raw")
@@ -128,9 +128,9 @@ module Beaglebone #:nodoc:
 
         pin_tx = UARTS[uart][:tx]
 
-        Beaglebone::check_valid_pin(pin_tx, :uart)
+        Beaglebone.check_valid_pin(pin_tx, :uart)
 
-        fd = Beaglebone::get_pin_status(pin_tx, :fd_uart)
+        fd = Beaglebone.get_pin_status(pin_tx, :fd_uart)
 
         ret = fd.write(data)
         fd.flush
@@ -182,13 +182,13 @@ module Beaglebone #:nodoc:
 
         pin_rx = UARTS[uart][:rx]
 
-        Beaglebone::check_valid_pin(pin_rx, :uart)
+        Beaglebone.check_valid_pin(pin_rx, :uart)
 
-        fd = Beaglebone::get_pin_status(pin_rx, :fd_uart)
+        fd = Beaglebone.get_pin_status(pin_rx, :fd_uart)
 
         set_uart_status(uart, :waiting, true)
 
-        while bytes > 0 do
+        while bytes > 0
           buffer << fd.readchar
           bytes -= 1
         end
@@ -211,9 +211,9 @@ module Beaglebone #:nodoc:
 
         pin_rx = UARTS[uart][:rx]
 
-        Beaglebone::check_valid_pin(pin_rx, :uart)
+        Beaglebone.check_valid_pin(pin_rx, :uart)
 
-        fd = Beaglebone::get_pin_status(pin_rx, :fd_uart)
+        fd = Beaglebone.get_pin_status(pin_rx, :fd_uart)
 
         set_uart_status(uart, :waiting, true)
 
@@ -235,7 +235,6 @@ module Beaglebone #:nodoc:
           data = readchars(uart, 1)
           yield data
         end
-
       end
 
       # Read characters from a UART device and pass them to the specified block
@@ -251,7 +250,6 @@ module Beaglebone #:nodoc:
           yield data
         end
       end
-
 
       # Read lines from a UART device and pass them to the specified block
       #
@@ -276,7 +274,7 @@ module Beaglebone #:nodoc:
       # @example
       #   callback = lambda { |uart, line, count| puts "[#{uart}:#{count}] #{line} "}
       #   UART.run_on_each_line(callback, :UART1)
-      def run_on_each_line(callback, uart, repeats=nil)
+      def run_on_each_line(callback, uart, repeats = nil)
         check_uart_enabled(uart)
 
         raise StandardError, "Already waiting for data on uart: #{uart}" if get_uart_status(uart, :waiting)
@@ -286,7 +284,6 @@ module Beaglebone #:nodoc:
           begin
             count = 0
             each_line(u) do |line|
-
               c.call(u, line, count) if c
 
               count += 1
@@ -320,7 +317,7 @@ module Beaglebone #:nodoc:
       # @example
       #   callback = lambda { |uart, data, count| puts "[#{uart}:#{count}] #{data} "}
       #   UART.run_on_each_chars(callback, :UART1, 2)
-      def run_on_each_chars(callback, uart, chars=1, repeats=nil)
+      def run_on_each_chars(callback, uart, chars = 1, repeats = nil)
         check_uart_enabled(uart)
 
         raise StandardError, "Already waiting for data on uart: #{uart}" if get_uart_status(uart, :waiting)
@@ -330,7 +327,6 @@ module Beaglebone #:nodoc:
           begin
             count = 0
             each_chars(u, ch) do |line|
-
               c.call(u, line, count) if c
 
               count += 1
@@ -355,13 +351,13 @@ module Beaglebone #:nodoc:
 
       # Convenience method for run_on_each_chars with chars and repeats set to 1
       # @see #run_on_each_chars
-      def run_once_on_each_chars(callback, uart, chars=1)
+      def run_once_on_each_chars(callback, uart, chars = 1)
         run_on_each_chars(callback, uart, chars, 1)
       end
 
       # Convenience method for run_on_each_chars with chars set to 1
       # @see #run_on_each_chars
-      def run_on_each_char(callback, uart, repeats=nil)
+      def run_on_each_char(callback, uart, repeats = nil)
         run_on_each_chars(callback, uart, 1, repeats)
       end
 
@@ -395,8 +391,8 @@ module Beaglebone #:nodoc:
 
       # Disable all UART devices
       def cleanup
-        #reset all UARTs we've used and unload the device tree
-        uartstatus.clone.keys.each { |uart| disable(uart)}
+        # reset all UARTs we've used and unload the device tree
+        uartstatus.clone.keys.each { |uart| disable(uart) }
       end
 
       private
@@ -433,31 +429,30 @@ module Beaglebone #:nodoc:
 
       # ensure UART is valid
       def check_uart_valid(uart)
-        raise ArgumentError, "Invalid UART Specified #{uart.to_s}" unless UARTS[uart]
+        raise ArgumentError, "Invalid UART Specified #{uart}" unless UARTS[uart]
         uartinfo = UARTS[uart.to_sym]
 
         if uartinfo[:tx]
-          unless [nil,:uart].include?(Beaglebone::get_pin_status(uartinfo[:tx], :type))
-            raise StandardError, "TX Pin for #{uart.to_s} in use"
+          unless [nil, :uart].include?(Beaglebone.get_pin_status(uartinfo[:tx], :type))
+            raise StandardError, "TX Pin for #{uart} in use"
           end
         end
 
         if uartinfo[:rx]
-          unless [nil,:uart].include?(Beaglebone::get_pin_status(uartinfo[:rx], :type))
-            raise StandardError, "RX Pin for #{uart.to_s} in use"
+          unless [nil, :uart].include?(Beaglebone.get_pin_status(uartinfo[:rx], :type))
+            raise StandardError, "RX Pin for #{uart} in use"
           end
         end
-
       end
 
       # ensure UART is enabled
       def check_uart_enabled(uart)
-        raise ArgumentError, "UART not enabled #{uart.to_s}" unless get_uart_status(uart)
+        raise ArgumentError, "UART not enabled #{uart}" unless get_uart_status(uart)
       end
 
       # ensure we have a read lock for the UART
       def ensure_read_lock(uart)
-        #ensure we're the only ones reading
+        # ensure we're the only ones reading
         if get_uart_status(uart, :thread) && get_uart_status(uart, :thread) != Thread.current
           raise StandardError, "Already waiting for data on uart: #{uart}"
         end
@@ -474,26 +469,25 @@ module Beaglebone #:nodoc:
 
       # disable a uart pin
       def disable_uart_pin(pin)
-        Beaglebone::check_valid_pin(pin, :uart)
+        Beaglebone.check_valid_pin(pin, :uart)
 
-        id = Beaglebone::get_pin_status(pin, :uart)
+        id = Beaglebone.get_pin_status(pin, :uart)
 
-        Beaglebone::delete_pin_status(pin)
+        Beaglebone.delete_pin_status(pin)
 
-        #removing uart tree causes a crash... can't really disable.
+        # removing uart tree causes a crash... can't really disable.
         return if true
 
-        Beaglebone::device_tree_unload("#{TREES[:UART][:pin]}#{id}")
-
+        Beaglebone.device_tree_unload("#{TREES[:UART][:pin]}#{id}")
       end
 
       def create_device_tree(uart, force = false)
         uartinfo = UARTS[uart]
 
-        #ensure valid uart, and a template to create this exists
+        # ensure valid uart, and a template to create this exists
         return unless uartinfo
 
-        uartnum =  uartinfo[:id]
+        uartnum = uartinfo[:id]
 
         return unless uartnum && UARTTEMPLATE[uartnum]
 
@@ -504,16 +498,14 @@ module Beaglebone #:nodoc:
         dtb_fn = "#{filename}.dtbo"
 
         # if we've already built this file, we don't need to do it again
-        return if File.exists?(dtb_fn) && !force
+        return if File.exist?(dtb_fn) && !force
 
         dts_file = File.open(dts_fn, 'w')
         dts_file.write(dts)
         dts_file.close
 
         system("dtc -O dtb -o #{dtb_fn} -b 0 -@ #{dts_fn}")
-
       end
-
     end
   end
 
@@ -527,9 +519,9 @@ module Beaglebone #:nodoc:
     #
     # @example
     #   uart1 = UARTDevice.new(:UART1, 9600)
-    def initialize(uart, speed=9600)
+    def initialize(uart, speed = 9600)
       @uart = uart
-      UART::setup(@uart, speed)
+      UART.setup(@uart, speed)
     end
 
     # Set the speed of the UART
@@ -539,7 +531,7 @@ module Beaglebone #:nodoc:
     # @example
     #   uart1.set_speed(9600)
     def set_speed(speed)
-      UART::set_speed(@uart, speed)
+      UART.set_speed(@uart, speed)
     end
 
     # Write data to a UART device
@@ -551,7 +543,7 @@ module Beaglebone #:nodoc:
     # @example
     #   uart1.write("1234") => 4
     def write(data)
-      UART::write(@uart, data)
+      UART.write(@uart, data)
     end
 
     # Write a line data to a UART device.
@@ -565,7 +557,7 @@ module Beaglebone #:nodoc:
     # @example
     #   uart1.writeln("1234") => 5
     def writeln(data)
-      UART::writeln(@uart, data)
+      UART.writeln(@uart, data)
     end
 
     # Read one character from a UART device
@@ -575,7 +567,7 @@ module Beaglebone #:nodoc:
     # @example
     #   uart1.readchars => "x"
     def readchar
-      UART::readchar(@uart)
+      UART.readchar(@uart)
     end
 
     # Read characters from a UART device
@@ -587,7 +579,7 @@ module Beaglebone #:nodoc:
     # @example
     #   uart1.readchars(2) => "xx"
     def readchars(bytes)
-      UART::readchars(@uart, bytes)
+      UART.readchars(@uart, bytes)
     end
 
     # Read a line from a UART device
@@ -597,7 +589,7 @@ module Beaglebone #:nodoc:
     # @example
     #   uart1.readline => "A line of text"
     def readline
-      UART::readline(@uart)
+      UART.readline(@uart)
     end
 
     # Read a character from a UART device and pass it to the specified block
@@ -605,7 +597,7 @@ module Beaglebone #:nodoc:
     # @example
     #   uart1.each_char { |x| puts "read: #{x}" }
     def each_char(&block)
-      UART::each_char(@uart, &block)
+      UART.each_char(@uart, &block)
     end
 
     # Read characters from a UART device and pass them to the specified block
@@ -615,7 +607,7 @@ module Beaglebone #:nodoc:
     # @example
     #   uart1.each_chars(2) { |x| puts "read: #{x}" }
     def each_chars(chars, &block)
-      UART::each_chars(@uart, chars, &block)
+      UART.each_chars(@uart, chars, &block)
     end
 
     # Read lines from a UART device and pass them to the specified block
@@ -623,7 +615,7 @@ module Beaglebone #:nodoc:
     # @example
     #   uart1.each_line { |x| puts "read: #{x}" }
     def each_line(&block)
-      UART::each_line(@uart, &block)
+      UART.each_line(@uart, &block)
     end
 
     # Runs a callback after receiving a line of data from a UART device
@@ -635,14 +627,14 @@ module Beaglebone #:nodoc:
     # @example
     #   callback = lambda { |uart, line, count| puts "[#{uart}:#{count}] #{line} "}
     #   uart1.run_on_each_line(callback)
-    def run_on_each_line(callback, repeats=nil)
-      UART::run_on_each_line(callback, @uart, repeats)
+    def run_on_each_line(callback, repeats = nil)
+      UART.run_on_each_line(callback, @uart, repeats)
     end
 
     # Convenience method for run_on_each_line with repeats set to 1
     # @see #run_on_each_line
     def run_once_on_each_line(callback)
-      UART::run_once_on_each_line(callback, @uart)
+      UART.run_once_on_each_line(callback, @uart)
     end
 
     # Runs a callback after receiving data from a UART device
@@ -655,39 +647,38 @@ module Beaglebone #:nodoc:
     # @example
     #   callback = lambda { |uart, data, count| puts "[#{uart}:#{count}] #{data} "}
     #   uart1.run_on_each_chars(callback, 2)
-    def run_on_each_chars(callback, chars=1, repeats=nil)
-      UART::run_on_each_chars(callback, @uart, chars, repeats)
+    def run_on_each_chars(callback, chars = 1, repeats = nil)
+      UART.run_on_each_chars(callback, @uart, chars, repeats)
     end
 
     # Convenience method for run_on_each_chars with chars and repeats set to 1
     # @see #run_on_each_chars
     def run_once_on_each_char(callback)
-      UART::run_once_on_each_char(callback, @uart)
+      UART.run_once_on_each_char(callback, @uart)
     end
 
     # Convenience method for run_on_each_chars with chars and repeats set to 1
     # @see #run_on_each_chars
-    def run_once_on_each_chars(callback, chars=1)
-      UART::run_once_on_each_chars(callback, @uart, chars)
+    def run_once_on_each_chars(callback, chars = 1)
+      UART.run_once_on_each_chars(callback, @uart, chars)
     end
 
     # Convenience method for run_on_each_chars with chars set to 1
     # @see #run_on_each_chars
-    def run_on_each_char(callback, repeats=nil)
-      UART::run_on_each_char(callback, @uart, repeats)
+    def run_on_each_char(callback, repeats = nil)
+      UART.run_on_each_char(callback, @uart, repeats)
     end
 
     # Stops any threads waiting for data on the specified UART
     def stop_read_wait
-      UART::stop_read_wait(@uart)
+      UART.stop_read_wait(@uart)
     end
 
     # Disable a UART device.
     #
     # @note device trees cannot be unloaded at this time without kernel panic.
     def disable
-      UART::disable(@uart)
+      UART.disable(@uart)
     end
-
   end
 end
