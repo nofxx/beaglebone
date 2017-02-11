@@ -555,11 +555,11 @@ module Beaglebone #:nodoc:
           pin_data |= 0b10000
         when :NONE
           pin_data |= 0b1000
-          end
+        end
         # set mux mode, 7 is gpio
         pin_data |= 7
 
-        dts = GPIOTEMPLATE.clone
+        dts = GPIOTEMPLATE.dup
 
         dts.gsub!('!PIN_KEY!', pin.to_s)
         dts.gsub!('!PIN_DOT_KEY!', pin.to_s.tr('_', '.'))

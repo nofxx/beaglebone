@@ -207,8 +207,8 @@ module Beaglebone
       pinmutex.synchronize do
         if key.nil?
           pinstatus.delete(pin)
-        else
-          pinstatus[pin].delete(key) if pinstatus[pin]
+        elsif pinstatus[pin]
+          pinstatus[pin].delete(key)
         end
       end
     end
@@ -216,17 +216,14 @@ module Beaglebone
     # disable pin
     def disable_pin(pin)
       status = get_pin_status(pin)
+      return unless status
 
-      if status
-        case status[:type]
-        when :gpio
-          Beaglebone::GPIO.disable_gpio_pin(pin)
-        when :pwm
-          Beaglebone::PWM.disable_pwm_pin(pin)
-        else
-          # we can't disable any other pin types at this time
-          raise StandardError, "Cannot disable pin: #{pin} in #{status[:type]} mode"
-        end
+      case status[:type]
+      when :gpio then Beaglebone::GPIO.disable_gpio_pin(pin)
+      when :pwm then Beaglebone::PWM.disable_pwm_pin(pin)
+      else
+        # we can't disable any other pin types at this time
+        raise StandardError, "Cannot disable pin: #{pin} in #{status[:type]} mode"
       end
     end
 
@@ -259,9 +256,11 @@ module Beaglebone
         return true
       end
 
+      raise 'Install DTC' unless File.exist?("#{get_capemgr_dir}/slots")
+      # `echo #{name} > #{get_capemgr_dir}/slots`
       File.open("#{get_capemgr_dir}/slots", 'w') { |f| f.write(name) }
       sleep delay
-      raise StandardError, "Unable to load device tree: #{name}" unless device_tree_loaded?(name)
+      raise StandardError, "Unable to load dtbo: #{name}" unless device_tree_loaded?(name)
       true
     end
 

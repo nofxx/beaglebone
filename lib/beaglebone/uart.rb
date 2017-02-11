@@ -16,8 +16,9 @@ module Beaglebone #:nodoc:
       attr_accessor :uartstatus, :uartmutex
 
       # dts template for UART3 device
-      UARTTEMPLATE = [].freeze
-      UARTTEMPLATE[3] = '
+      #UARTTEMPLATE[3] = '
+      UARTTEMPLATE = [nil, nil, nil,
+                      '
 /dts-v1/;
 /plugin/;
 
@@ -55,7 +56,7 @@ module Beaglebone #:nodoc:
     };
   };
 };
-'
+'].freeze
 
       # Initialize a UART device
       #
