@@ -61,7 +61,7 @@ module Beaglebone #:nodoc:
         read_duty_value(pin)
         read_polarity_value(pin)
 
-        run_fd.write('0')
+        run_fd.write('0') unless run_fd.read.to_i.zero?
         run_fd.flush
 
         set_polarity(pin, polarity) if polarity
@@ -145,7 +145,10 @@ module Beaglebone #:nodoc:
         polarity_fd = Beaglebone.get_pin_status(pin, :fd_polarity)
         raise StandardError, "Pin is not PWM enabled: #{pin}" unless polarity_fd
 
-        polarity_fd.write(POLARITIES[polarity.to_sym].to_s)
+        polarity_fd.rewind
+        if polarity_fd.read.strip != POLARITIES[polarity.to_sym]
+          polarity_fd.write(POLARITIES[polarity.to_sym].to_s)
+        end
         polarity_fd.flush
 
         raise StandardError, "Could not set polarity: #{pin}" unless read_polarity_value(pin) == POLARITIES[polarity.to_sym]
@@ -341,7 +344,7 @@ module Beaglebone #:nodoc:
         raise StandardError, "Pin is not PWM enabled: #{pin}" unless fd
 
         fd.rewind
-        # OLD value = fd.read.strip #.to_i
+        # OLD value = fd.read.strip.to_i # NOW -> [normal, inversed]
         value = fd.read.strip # .to_i
 
         Beaglebone.set_pin_status(pin, :polarity, value)
@@ -360,7 +363,8 @@ module Beaglebone #:nodoc:
         Beaglebone.set_pin_status(pin, :duty, value)
         # only set duty_pct if it is unset or if we are forcing it.
         if setpct || Beaglebone.get_pin_status(pin, :duty_pct).nil?
-          duty_pct = ((value * 100.0) / Beaglebone.get_pin_status(pin, :period)).round
+          period = Beaglebone.get_pin_status(pin, :period).to_i
+          duty_pct = period.zero? ? 0 : ((value * 100.0) / period).round
           Beaglebone.set_pin_status(pin, :duty_pct, duty_pct)
         end
 
@@ -386,11 +390,17 @@ module Beaglebone #:nodoc:
       def pwm_directory(pin)
         raise StandardError, 'Invalid Pin' unless valid?(pin)
         # OLD Dir.glob("/sys/devices/ocp.*/pwm_test_#{pin}.*").first
-        mod = case pin
+        mod = case pin.to_s
               when /P9_21|P9_22/ then '2'
               when /P9_14|P9_16/ then '4'
               when /P9_13|P9_19/ then '6'
               end
+        dir = "/sys/class/pwm/pwmchip#{mod}"
+        # Start port
+        unless Dir.exist?("#{dir}/pwm0")
+          File.open("#{dir}/export", 'w') { |f| f << '0' }
+        end
+
         Dir.glob("/sys/class/pwm/pwmchip#{mod}/pwm0").first
       end
 
